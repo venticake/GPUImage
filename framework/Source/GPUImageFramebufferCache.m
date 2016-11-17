@@ -143,7 +143,12 @@
     [framebuffer clearAllLocks];
     
 //    dispatch_async(framebufferCacheQueue, ^{
-    runAsynchronouslyOnVideoProcessingQueue(^{
+    runSynchronouslyOnVideoProcessingQueue(^{
+        for (GPUImageFramebuffer *frameBufferFromCache in framebufferCache.allValues) {
+            if (frameBufferFromCache.texture == framebuffer.texture) {
+                return;
+            }
+        }
         CGSize framebufferSize = framebuffer.size;
         GPUTextureOptions framebufferTextureOptions = framebuffer.textureOptions;
         NSString *lookupHash = [self hashForSize:framebufferSize textureOptions:framebufferTextureOptions onlyTexture:framebuffer.missingFramebuffer];
