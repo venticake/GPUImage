@@ -308,11 +308,18 @@ void dataProviderUnlockCallback (void *info, const void *data, size_t size)
 
 - (CGImageRef)newCGImageFromFramebufferContents;
 {
+    return [self newCGImageFromFramebufferContents:NO];
+}
+
+- (CGImageRef)newCGImageFromFramebufferContents:(BOOL)forceReadPixel;
+{
     // a CGImage can only be created from a 'normal' color texture
     NSAssert(self.textureOptions.internalFormat == GL_RGBA, @"For conversion to a CGImage the output texture format for this filter must be GL_RGBA.");
     NSAssert(self.textureOptions.type == GL_UNSIGNED_BYTE, @"For conversion to a CGImage the type of the output texture of this filter must be GL_UNSIGNED_BYTE.");
     
     __block CGImageRef cgImageFromBytes;
+    
+    BOOL supportsFastTextureUpload = [GPUImageContext supportsFastTextureUpload] && !forceReadPixel;
     
     runSynchronouslyOnVideoProcessingQueue(^{
         [GPUImageContext useImageProcessingContext];
@@ -323,7 +330,7 @@ void dataProviderUnlockCallback (void *info, const void *data, size_t size)
         GLubyte *rawImagePixels;
         
         CGDataProviderRef dataProvider = NULL;
-        if ([GPUImageContext supportsFastTextureUpload])
+        if (supportsFastTextureUpload)
         {
 #if TARGET_IPHONE_SIMULATOR || TARGET_OS_IPHONE
             NSUInteger paddedWidthOfImage = CVPixelBufferGetBytesPerRow(renderTarget) / 4.0;
@@ -349,7 +356,7 @@ void dataProviderUnlockCallback (void *info, const void *data, size_t size)
         
         CGColorSpaceRef defaultRGBColorSpace = CGColorSpaceCreateDeviceRGB();
         
-        if ([GPUImageContext supportsFastTextureUpload])
+        if (supportsFastTextureUpload)
         {
 #if TARGET_IPHONE_SIMULATOR || TARGET_OS_IPHONE
             cgImageFromBytes = CGImageCreate((int)_size.width, (int)_size.height, 8, 32, CVPixelBufferGetBytesPerRow(renderTarget), defaultRGBColorSpace, kCGBitmapByteOrder32Little | kCGImageAlphaPremultipliedFirst, dataProvider, NULL, NO, kCGRenderingIntentDefault);
